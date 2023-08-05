@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  {{- $relname := .Release.Name}}
+  name: {{ $relname }}-wordpress
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ $relname }}-wordpress
+  template:
+    metadata:
+      labels:
+        app: {{ $relname }}-wordpress
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: wordpress
+          image: "wordpress:{{ .Values.wordpress_version | default "latest" }}"
+          ports:
+            - containerPort: 80
+          env:
+          {{- with .Values.mysql }}
+            - name: WORDPRESS_DB_HOST
+              value: {{ .hostname }}
+            - name: WORDPRESS_DB_NAME
+              value: {{ .database }}
+            - name: WORDPRESS_DB_USER
+              value: {{ .username }}
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $relname }}-mysql
+                  key: password
+          {{- end }}
